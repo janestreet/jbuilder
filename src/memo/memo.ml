@@ -365,11 +365,26 @@ module Cache_lookup = struct
   end
 end
 
-(* A "computation" is a shared fiber represented by [Once.t], together with a
-   DAG node, which we use to detect dependency cycles. When a run completes,
-   shared fibers and DAG nodes are garbage collected because we no longer hold
-   any references to them. *)
+(* A "computation" is a shared fiber represented by a [Once.t] together with a
+   DAG node, which we use to detect dependency cycles.
+
+   When a run completes, most computations are garbage collected because we no
+   longer hold any references to them. Some may survive and become "stale", for
+   example, if the [restore_from_cache] step fails but the node's parent loses
+   interest in the node and never proceeds to the [compute] step.
+
+   To distinguish between "current" and "stale" computations, we store the [run]
+   in which the computation had started. In this way, before subscribing to a
+   computation, we can check if it corresponds to the current run, and if not,
+   restart it from scratch.
+
+   Once all stale computations have been restarted, we should hold no more
+   references to the corresponding computations, allowing them to be garbage
+   collected. Note: some stale computations may never be restarted, e.g. if they
+   end up getting forever stuck behind an inactive conditional. *)
 module Computation0 = struct
+  (* CR-someday amokhov: It would be great to tighten the interface to make it
+     impossible to read a stale computation. *)
   (* CR-someday aalekseyev: It's weird to carry a [dag_node] separately from
      [once] even though the stack frame itself is available in the closure that
      [t.once] is holding. This is probably not the only inefficiency introduced
@@ -379,7 +394,10 @@ module Computation0 = struct
   type 'a t =
     { once : 'a Once.t
     ; dag_node : Dag.node Lazy.t
+    ; run : Run.t
     }
+
+  let is_current { run; _ } = Run.is_current run
 end
 
 (* Checking dependencies of a node can lead to one of these outcomes:
@@ -496,32 +514,17 @@ module M = struct
       go (Array.length t - 1)
   end
 
-  (* Why do we store a [run] in [State]?
-
-     It is possible for a computation to remain in the [Considering] state after
-     the current run is complete. This happens if the [restore_from_cache] step
-     fails, and the parent node recreates all dependencies from scratch in the
-     subsequent [compute] step. We call computations that become stuck in the
-     [Considering] state "stale computations".
-
-     To distinguish between "current" and "stale" computations, we store the
-     [run] in which the computation had started. In this way, before subscribing
-     to a computation, we can check if it corresponds to the current run, and if
-     not, restart it from scratch. This is what [consider] does.
-
-     Once all stale computations have been restarted, we should hold no more
-     references to the corresponding computations, allowing them to be garbage
-     collected. Note: some stale computations may never be restarted, e.g. if
-     they end up getting forever stuck behind an inactive conditional. *)
+  (* When the node is in the [Computing] state, [cache_lookup_failure] contains
+     the reason for running the computation. *)
   and State : sig
     type 'a t =
-      (* [Considering] marks computations currently being considered, i.e. whose
-         result we currently attempt to restore from the cache or recompute. *)
       | Not_considering
-      | Considering of
-          { run : Run.t
-          ; restore_from_cache :
+      | Restoring of
+          { restore_from_cache :
               'a Cached_value.t Cache_lookup.Result.t Computation0.t
+          }
+      | Computing of
+          { cache_lookup_failure : 'a Cached_value.t Cache_lookup.Failure.t
           ; compute : 'a Cached_value.t Computation0.t
           }
   end =
@@ -675,29 +678,6 @@ module Call_stack = struct
     let stack = frame :: stack in
     Fiber.Var.set call_stack_var stack (fun () -> Implicit_output.forbid f)
 
-  (* Dependency cycles can have successive pairs of stack frames with the same
-     [Dep_node], corresponding to [Restore_from_cache] and [Compute] phases.
-     This function removes such duplicates for better error messages. *)
-  let remove_duplicate_stack_frames list =
-    let cons_unless_duplicate x = function
-      | [] -> [ x ]
-      | hd :: _ as list -> (
-        match Stack_frame_without_state.equal x hd with
-        | true -> list
-        | false -> x :: list)
-    in
-    let list = List.fold_right list ~init:[] ~f:cons_unless_duplicate in
-    (* Now check the case where the duplicates are the first and the last frames *)
-    match List.destruct_last list with
-    | None -> list
-    | Some (init, last) -> (
-      match List.hd_opt init with
-      | None -> list
-      | Some first -> (
-        match Stack_frame_without_state.equal first last with
-        | true -> init
-        | false -> list))
-
   (* Add all edges leading from the root of the call stack to [dag_node] to the
      cycle detection DAG. *)
   let add_path_to ~dag_node =
@@ -723,8 +703,7 @@ module Call_stack = struct
           in
           match Dag.add_assuming_missing caller_dag_node dag_node with
           | exception Dag.Cycle cycle ->
-            let cycle = List.map cycle ~f:(fun dag_node -> dag_node.Dag.data) in
-            Error (remove_duplicate_stack_frames cycle)
+            Error (List.map cycle ~f:(fun dag_node -> dag_node.Dag.data))
           | () -> (
             if !Counters.enabled then
               incr Counters.edges_in_cycle_detection_graph;
@@ -834,7 +813,7 @@ module Computation = struct
              the [fiber] is to let the latter get the discovered dependencies. *)
           Call_stack.push_frame frame (fun () -> fiber frame))
     in
-    { once; dag_node }
+    { once; dag_node; run = Run.current () }
 
   let evaluate_and_check_for_cycles t =
     Once.force t.once ~on_blocking:(fun () ->
@@ -1215,11 +1194,10 @@ end = struct
       | true -> Cached_value.create value ~deps_rev
       | false -> Cached_value.confirm_old_value ~deps_rev old_cv)
 
-  and start_considering :
+  and start_restoring :
         'i 'o.
            ('i, 'o) Dep_node.t
-        -> 'o Cached_value.t Cache_lookup.Result.t Computation.t
-           * 'o Cached_value.t Computation.t =
+        -> 'o Cached_value.t Cache_lookup.Result.t Computation.t =
    fun dep_node ->
     if !Counters.enabled then incr Counters.nodes_considered;
     let restore_from_cache =
@@ -1235,58 +1213,33 @@ end = struct
           | Failure _ -> ());
           restore_result)
     in
-    (* CR-someday amokhov: When doing an incremental zero rebuild, we don't need
-       the [compute] computation but we still create it and carry around in the
-       [Considering] state. To speed things up, we could make it lazy or switch
-       to two "considering" states: [Restore_from_cache] and [Compute]. This
-       needs some benchmarking.
+    dep_node.state <- Restoring { restore_from_cache };
+    restore_from_cache
 
-       aalekeseyev: I wish we just made the representation of non-forced
-       [Computation] cheap instead of trying to avoid it. There's no reason for
-       it to be more expensive than the lazy we'd be replacing it with (both
-       just need to allocate a tuple with the info needed in the future). *)
+  and start_computing :
+        'i 'o.
+           ('i, 'o) Dep_node.t
+        -> 'o Cached_value.t Cache_lookup.Failure.t
+        -> 'o Cached_value.t Computation.t =
+   fun dep_node cache_lookup_failure ->
     let compute =
       Computation.create ~phase:Compute ~dep_node:dep_node.without_state
         (fun stack_frame ->
-          let* cache_lookup_result =
-            Computation.evaluate_and_check_for_cycles restore_from_cache
-            >>| function
-            | Ok cache_lookup_result -> cache_lookup_result
-            | Error dependency_cycle ->
-              Cache_lookup.Result.Failure (Cancelled { dependency_cycle })
+          dep_node.last_cached_value <- None;
+          let+ cached_value =
+            compute dep_node cache_lookup_failure stack_frame
           in
-          match cache_lookup_result with
-          | Ok cached_value -> Fiber.return cached_value
-          | Failure cache_lookup_failure ->
-            dep_node.last_cached_value <- None;
-            let+ cached_value =
-              compute dep_node cache_lookup_failure stack_frame
-            in
-            dep_node.last_cached_value <- Some cached_value;
-            dep_node.state <- Not_considering;
-            if !Counters.enabled then (
-              incr Counters.nodes_computed;
-              Counters.edges_considered :=
-                !Counters.edges_considered + Deps.length cached_value.deps
-            );
-            cached_value)
+          dep_node.last_cached_value <- Some cached_value;
+          dep_node.state <- Not_considering;
+          if !Counters.enabled then (
+            incr Counters.nodes_computed;
+            Counters.edges_considered :=
+              !Counters.edges_considered + Deps.length cached_value.deps
+          );
+          cached_value)
     in
-    dep_node.state <-
-      Considering { run = Run.current (); restore_from_cache; compute };
-    (restore_from_cache, compute)
-
-  and consider :
-        'i 'o.
-           ('i, 'o) Dep_node.t
-        -> 'o Cached_value.t Cache_lookup.Result.t Computation.t
-           * 'o Cached_value.t Computation.t =
-   fun dep_node ->
-    match dep_node.state with
-    | Not_considering -> start_considering dep_node
-    | Considering { run; restore_from_cache; compute } -> (
-      match Run.is_current run with
-      | true -> (restore_from_cache, compute)
-      | false -> start_considering dep_node (* reconsider stale computation *))
+    dep_node.state <- Computing { cache_lookup_failure; compute };
+    compute
 
   and consider_and_restore_from_cache_without_adding_dep :
         'i 'o.
@@ -1295,11 +1248,24 @@ end = struct
     match get_cached_value_in_current_run dep_node with
     | Some cached_value -> Fiber.return (Cache_lookup.Result.Ok cached_value)
     | None -> (
-      let restore_from_cache = fst (consider dep_node) in
-      Computation.evaluate_and_check_for_cycles restore_from_cache >>| function
-      | Ok res -> res
-      | Error dependency_cycle ->
-        Cache_lookup.Result.Failure (Cancelled { dependency_cycle }))
+      let of_restoring restore_from_cache =
+        Computation.evaluate_and_check_for_cycles restore_from_cache
+        >>| function
+        | Ok res -> res
+        | Error dependency_cycle ->
+          Cache_lookup.Result.Failure (Cancelled { dependency_cycle })
+      in
+      match dep_node.state with
+      | Restoring { restore_from_cache }
+        when Computation.is_current restore_from_cache ->
+        of_restoring restore_from_cache
+      | Computing { cache_lookup_failure; compute }
+        when Computation.is_current compute ->
+        Fiber.return (Cache_lookup.Result.Failure cache_lookup_failure)
+      | Not_considering
+      | Restoring _
+      | Computing _ ->
+        of_restoring (start_restoring dep_node))
 
   and consider_and_compute_without_adding_dep :
         'i 'o.
@@ -1308,9 +1274,30 @@ end = struct
    fun dep_node ->
     match get_cached_value_in_current_run dep_node with
     | Some cached_value -> Fiber.return (Ok cached_value)
-    | None ->
-      let compute = snd (consider dep_node) in
-      Computation.evaluate_and_check_for_cycles compute
+    | None -> (
+      let of_computing compute =
+        Computation.evaluate_and_check_for_cycles compute
+      in
+      let of_restoring restore_from_cache =
+        Computation.evaluate_and_check_for_cycles restore_from_cache
+        >>= function
+        | Error _ as cycle_error -> Fiber.return cycle_error
+        | Ok cache_lookup_result -> (
+          match (cache_lookup_result : _ Cache_lookup.Result.t) with
+          | Ok cached_value -> Fiber.return (Ok cached_value)
+          | Failure cache_lookup_failure ->
+            of_computing (start_computing dep_node cache_lookup_failure))
+      in
+      match dep_node.state with
+      | Restoring { restore_from_cache }
+        when Computation.is_current restore_from_cache ->
+        of_restoring restore_from_cache
+      | Computing { compute; _ } when Computation.is_current compute ->
+        of_computing compute
+      | Not_considering
+      | Restoring _
+      | Computing _ ->
+        of_restoring (start_restoring dep_node))
 
   and consider_and_compute :
         'i 'o.

@@ -990,7 +990,7 @@ let%expect_test "dynamic cycles with non-uniform cutoff structure" =
               }
             ]
     Memo: 9/9 computed/total nodes, 16/8 traversed/total edges
-    Memo's cycle detection graph: 7/7 nodes/edges
+    Memo's cycle detection graph: 5/5 nodes/edges
   |}];
   Memo.Perf_counters.reset ();
   evaluate_and_print summit_yes_cutoff 0;
@@ -1025,7 +1025,7 @@ let%expect_test "dynamic cycles with non-uniform cutoff structure" =
               }
             ]
     Memo: 7/7 computed/total nodes, 14/7 traversed/total edges
-    Memo's cycle detection graph: 8/8 nodes/edges
+    Memo's cycle detection graph: 5/5 nodes/edges
   |}];
   Memo.Perf_counters.reset ();
   evaluate_and_print summit_no_cutoff 2;
