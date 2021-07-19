@@ -31,10 +31,11 @@ let bash_exn =
 let not_found fmt ?loc ?context ?hint x =
   User_error.make ?loc
     (Pp.textf fmt (String.maybe_quoted x)
-     ::
-     (match context with
-     | None -> []
-     | Some name -> [ Pp.textf " (context: %s)" (Context_name.to_string name) ]))
+    ::
+    (match context with
+    | None -> []
+    | Some name -> [ Pp.textf " (context: %s)" (Context_name.to_string name) ])
+    )
     ~hints:
       (match hint with
       | None -> []

@@ -560,7 +560,8 @@ module Mvar = struct
     }
 
   (* Invariant enforced on mvars. We don't actually call this function, but we
-     keep it here for documentation and to help understand the implementation: *)
+     keep it here for documentation and to help understand the
+     implementation: *)
   let _invariant t =
     match t.value with
     | None -> Queue.is_empty t.writers

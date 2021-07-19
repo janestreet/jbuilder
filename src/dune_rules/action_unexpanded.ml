@@ -30,7 +30,8 @@ module Action_expander : sig
      - files that are detected as both targets and dependencies are removed from
      the dependency set
 
-     In addition to this, it embeds an expander for easily expanding templates. *)
+     In addition to this, it embeds an expander for easily expanding
+     templates. *)
 
   include Applicative
 
@@ -65,7 +66,8 @@ module Action_expander : sig
        such as in [(chdir <path> ...)] *)
     val path : String_with_vars.t -> Path.t t
 
-    (* Evaluate a path that "consumes" a target, such as in [(diff? ... <file>)] *)
+    (* Evaluate a path that "consumes" a target, such as in [(diff? ...
+       <file>)] *)
     val consume_file : String_with_vars.t -> Path.Build.t t
 
     val prog_and_args : String_with_vars.t -> (Action.Prog.t * string list) t

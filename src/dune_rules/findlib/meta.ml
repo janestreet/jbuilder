@@ -147,7 +147,8 @@ let archives ?(kind = [ Mode.Byte; Mode.Native ]) name =
       else
         None)
 
-(* fake entry we use to pass down the list of toplevel modules for root_module *)
+(* fake entry we use to pass down the list of toplevel modules for
+   root_module *)
 let main_modules names =
   List.map ~f:String.capitalize_ascii names
   |> String.concat ~sep:" " |> rule "main_modules" [] Set
@@ -177,11 +178,7 @@ let builtins ~stdlib_dir ~version:ocaml_version =
     let main_modules = main_modules in
     { name = Some name
     ; entries =
-        requires deps
-        ::
-        version
-        ::
-        main_modules
+        requires deps :: version :: main_modules
         ::
         (match dir with
         | None -> []

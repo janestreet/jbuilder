@@ -147,7 +147,8 @@ struct
   let read_all =
     (* We use 65536 because that is the size of OCaml's IO buffers. *)
     let chunk_size = 65536 in
-    (* Generic function for channels such that seeking is unsupported or broken *)
+    (* Generic function for channels such that seeking is unsupported or
+       broken *)
     let read_all_generic t buffer =
       let rec loop () =
         Buffer.add_channel buffer t chunk_size;

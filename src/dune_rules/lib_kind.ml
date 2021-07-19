@@ -82,8 +82,7 @@ let encode t =
     match t with
     | Normal -> Dune_lang.atom "normal"
     | Ppx_deriver x -> List (Dune_lang.atom "ppx_deriver" :: Ppx_args.encode x)
-    | Ppx_rewriter x ->
-      List (Dune_lang.atom "ppx_rewriter" :: Ppx_args.encode x)
+    | Ppx_rewriter x -> List (Dune_lang.atom "ppx_rewriter" :: Ppx_args.encode x)
   with
   | List [ x ] -> x
   | x -> x

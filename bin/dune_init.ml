@@ -304,14 +304,13 @@ module Component = struct
 
       let common (options : Options.Common.t) =
         name options.name
-        ::
-        (optional_field ~f:libraries options.libraries
-        @ optional_field ~f:pps options.pps)
+        :: (optional_field ~f:libraries options.libraries
+           @ optional_field ~f:pps options.pps)
     end
 
     let make kind common_options fields =
       (* Form the AST *)
-      List (atom kind :: fields @ Field.common common_options)
+      List ((atom kind :: fields) @ Field.common common_options)
       (* Convert to a CST *)
       |> Dune_lang.Ast.add_loc ~loc:Loc.none
       |> Cst.concrete (* Package as a list CSTs *) |> List.singleton

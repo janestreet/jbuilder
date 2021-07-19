@@ -286,7 +286,7 @@ struct
     | Pipe (outputs, l) ->
       List
         (atom (sprintf "pipe-%s" (Outputs.to_string outputs))
-         :: List.map l ~f:encode)
+        :: List.map l ~f:encode)
     | Format_dune_file (ver, src, dst) ->
       List
         [ atom "format-dune-file"

@@ -78,7 +78,8 @@ module Scheduler = struct
       let status_line =
         Some
           (Pp.seq
-             (* XXX Why do we print "Had errors"? The user simply edited a file *)
+             (* XXX Why do we print "Had errors"? The user simply edited a
+                file *)
              (Pp.tag User_message.Style.Error (Pp.verbatim "Had errors"))
              (Pp.verbatim ", killing current build..."))
       in

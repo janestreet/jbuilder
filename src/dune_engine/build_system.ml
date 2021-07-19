@@ -26,7 +26,8 @@ end = struct
 
        Note: if we find a way to reliably invalidate this function, its output
        should continue to have no cutoff because the callers might depend not
-       just on the existence of a directory but on its *continuous* existence. *)
+       just on the existence of a directory but on its *continuous*
+       existence. *)
     Memo.create "mkdir_p"
       ~input:(module Path.Build)
       (fun p ->
@@ -532,7 +533,8 @@ let compute_target_digests_or_raise_error exec_params ~loc targets =
        cache will remove write permission because of hardlink sharing anyway, so
        always removing them enables to catch mistakes earlier. *)
     (* FIXME: searching the dune version for each single target seems way
-       suboptimal. This information could probably be stored in rules directly. *)
+       suboptimal. This information could probably be stored in rules
+       directly. *)
     if Path.Build.Set.is_empty targets then
       false
     else
@@ -567,26 +569,26 @@ let compute_target_digests_or_raise_error exec_params ~loc targets =
               let expected_syscall_path = Path.to_string path in
               Pp.concat ~sep:(Pp.verbatim ": ")
                 (pp_path path
-                 ::
-                 (match exn with
-                 | Unix.Unix_error (error, syscall, p) ->
-                   [ (if String.equal expected_syscall_path p then
-                       Pp.verbatim syscall
-                     else
-                       Pp.concat
-                         [ Pp.verbatim syscall
-                         ; Pp.verbatim " "
-                         ; Pp.verbatim (String.maybe_quoted p)
-                         ])
-                   ; Pp.text (Unix.error_message error)
-                   ]
-                 | Sys_error msg ->
-                   [ Pp.verbatim
-                       (String.drop_prefix_if_exists
-                          ~prefix:(expected_syscall_path ^ ": ")
-                          msg)
-                   ]
-                 | exn -> [ Pp.verbatim (Printexc.to_string exn) ])))
+                ::
+                (match exn with
+                | Unix.Unix_error (error, syscall, p) ->
+                  [ (if String.equal expected_syscall_path p then
+                      Pp.verbatim syscall
+                    else
+                      Pp.concat
+                        [ Pp.verbatim syscall
+                        ; Pp.verbatim " "
+                        ; Pp.verbatim (String.maybe_quoted p)
+                        ])
+                  ; Pp.text (Unix.error_message error)
+                  ]
+                | Sys_error msg ->
+                  [ Pp.verbatim
+                      (String.drop_prefix_if_exists
+                         ~prefix:(expected_syscall_path ^ ": ")
+                         msg)
+                  ]
+                | exn -> [ Pp.verbatim (Printexc.to_string exn) ])))
         ])
 
 let sandbox_dir = Path.Build.relative Path.Build.root ".sandbox"
@@ -1089,7 +1091,8 @@ end = struct
       | Unrestricted ->
         (* In this case the parent isn't going to be able to create any
            generated granddescendant directories. (rules that attempt to do so
-           may run into the [allowed_by_parent] check or will be simply ignored) *)
+           may run into the [allowed_by_parent] check or will be simply
+           ignored) *)
         Memo.Build.return Dir_set.empty
       | Restricted restriction -> Memo.Lazy.force restriction
     in
@@ -1250,7 +1253,8 @@ end = struct
   let build_dep : Dep.t -> Dep.Fact.t Memo.Build.t = function
     | Alias a ->
       let+ digests = build_alias a in
-      (* Fact: alias [a] expand to the set of files with their digest [digests] *)
+      (* Fact: alias [a] expand to the set of files with their digest
+         [digests] *)
       Dep.Fact.alias a digests
     | File f ->
       let+ digest = build_file f in
@@ -1264,7 +1268,8 @@ end = struct
     | Universe
     | Env _
     | Sandbox_config _ ->
-      (* Facts about these dependencies are constructed in [Dep.Facts.digest]. *)
+      (* Facts about these dependencies are constructed in
+         [Dep.Facts.digest]. *)
       Memo.Build.return Dep.Fact.nothing
 
   let build_deps deps =

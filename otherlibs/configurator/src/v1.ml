@@ -418,7 +418,7 @@ let compile_and_link_c_prog t ?(c_flags = []) ?(link_flags = []) code =
   let ok =
     if need_to_compile_and_link_separately t then
       run_ok (c_flags @ [ "-I"; t.stdlib_dir; "-c"; c_fname ])
-      && run_ok ("-o" :: exe_fname :: obj_fname :: t.c_libraries @ link_flags)
+      && run_ok (("-o" :: exe_fname :: obj_fname :: t.c_libraries) @ link_flags)
     else
       run_ok
         (List.concat
@@ -446,10 +446,8 @@ let compile_c_prog t ?(c_flags = []) code =
     Process.run_command_ok t ~dir
       (Process.command_args t.c_compiler
          (c_flags
-         @ "-I"
-           ::
-           t.stdlib_dir :: "-o" :: obj_fname :: "-c" :: c_fname :: t.c_libraries
-         ))
+         @ "-I" :: t.stdlib_dir :: "-o" :: obj_fname :: "-c" :: c_fname
+           :: t.c_libraries))
   in
   if ok then
     Ok obj_fname

@@ -281,8 +281,9 @@ end = struct
             let meta_file = Package_paths.meta_file ctx pkg in
             let dune_package_file = Package_paths.dune_package_file ctx pkg in
             (None, Install.Entry.make Lib meta_file ~dst:Findlib.meta_fn)
-            ::
-            (None, Install.Entry.make Lib dune_package_file ~dst:Dune_package.fn)
+            :: ( None
+               , Install.Entry.make Lib dune_package_file ~dst:Dune_package.fn
+               )
             ::
             (if not pkg.has_opam_file then
               deprecated_meta_and_dune_files
@@ -603,7 +604,8 @@ end = struct
       let meta_template = Path.build (Package_paths.meta_template ctx pkg) in
       let meta_template_lines_or_fail =
         (* XXX this should really be lazy as it's only necessary for the then
-           clause. There's no way to express this in the action builder however. *)
+           clause. There's no way to express this in the action builder
+           however. *)
         let vlib =
           List.find_map entries ~f:(function
             | Super_context.Lib_entry.Library lib ->

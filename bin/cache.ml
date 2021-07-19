@@ -51,7 +51,8 @@ let modes =
 (* We don't want to list deprecated subcommands in help. *)
 let non_deprecated_modes = [ ("trim", Trim) ]
 
-(* We do want to print a nice error message if a deprecated subcommand is run. *)
+(* We do want to print a nice error message if a deprecated subcommand is
+   run. *)
 let deprecated_error () =
   User_error.raise
     [ Pp.text

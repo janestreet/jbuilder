@@ -366,7 +366,8 @@ let cctx (lib : Library.t) ~sctx ~source_modules ~dir ~expander ~scope
       (Preprocess.Per_module.instrumentation_deps lib.buildable.preprocess
          ~instrumentation_backend)
   in
-  (* Preprocess before adding the alias module as it doesn't need preprocessing *)
+  (* Preprocess before adding the alias module as it doesn't need
+     preprocessing *)
   let* pp =
     Preprocessing.make sctx ~dir ~scope ~preprocess ~expander
       ~preprocessor_deps:lib.buildable.preprocessor_deps ~instrumentation_deps
@@ -391,7 +392,8 @@ let cctx (lib : Library.t) ~sctx ~source_modules ~dir ~expander ~scope
 
 let library_rules (lib : Library.t) ~cctx ~source_modules ~dir_contents
     ~compile_info =
-  (* Preprocess before adding the alias module as it doesn't need preprocessing *)
+  (* Preprocess before adding the alias module as it doesn't need
+     preprocessing *)
   let source_modules =
     Modules.fold_user_written source_modules ~init:[] ~f:(fun m acc -> m :: acc)
   in

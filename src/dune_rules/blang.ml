@@ -86,7 +86,8 @@ let decode_gen decode_string =
     fix (fun t ->
         sum ~force_parens:true
           (("or", repeat t >>| fun x -> Or x)
-           :: ("and", repeat t >>| fun x -> And x) :: ops)
+          :: ("and", repeat t >>| fun x -> And x)
+          :: ops)
         <|> let+ v = decode_string in
             Expr v)
   in

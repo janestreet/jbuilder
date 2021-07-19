@@ -231,7 +231,8 @@ let make_lib_modules (d : _ Dir_with_dune.t) ~lookup_vlib ~(lib : Library.t)
       let resolved =
         let name = Library.best_name lib in
         Lib.DB.find_even_when_hidden (Scope.libs d.scope) name
-        (* can't happen because this library is defined using the current stanza *)
+        (* can't happen because this library is defined using the current
+           stanza *)
         |> Option.value_exn
       in
       (* This [Option.value_exn] is correct because the above [lib.implements]

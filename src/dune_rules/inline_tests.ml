@@ -117,7 +117,7 @@ include Sub_system.Register_end_point (struct
       let* more_libs =
         Resolve.List.map info.libraries ~f:(Lib.DB.resolve (Scope.libs scope))
       in
-      Lib.closure ~linking:true (lib :: libs @ more_libs)
+      Lib.closure ~linking:true ((lib :: libs) @ more_libs)
     in
     (* Generate the runner file *)
     let* () =
@@ -240,8 +240,7 @@ include Sub_system.Register_end_point (struct
                       runner)
                and* flags = flags in
                let action =
-                 Action.run prog
-                   (Path.reach exe ~from:(Path.build dir) :: flags)
+                 Action.run prog (Path.reach exe ~from:(Path.build dir) :: flags)
                in
                (* jeremiedimino: it feels like this pattern should be pushed
                   into [resolve_program] directly *)
@@ -252,12 +251,11 @@ include Sub_system.Register_end_point (struct
            let run_tests = Action.chdir (Path.build dir) action in
            Action.progn
              (run_tests
-              ::
-              List.map source_files ~f:(fun fn ->
-                  Action.diff ~optional:true fn
-                    (Path.Build.extend_basename
-                       (Path.as_in_build_dir_exn fn)
-                       ~suffix:".corrected")))))
+             :: List.map source_files ~f:(fun fn ->
+                    Action.diff ~optional:true fn
+                      (Path.Build.extend_basename
+                         (Path.as_in_build_dir_exn fn)
+                         ~suffix:".corrected")))))
 end)
 
 let linkme = ()

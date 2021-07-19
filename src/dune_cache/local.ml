@@ -121,7 +121,8 @@ module Artifacts = struct
           with
           | exception Unix.Unix_error (Unix.EEXIST, _, _) -> (
             (* We end up here if the cache already contains an entry for this
-               artifact. We deduplicate by keeping only one copy, in the cache. *)
+               artifact. We deduplicate by keeping only one copy, in the
+               cache. *)
             let path_in_build_dir = Path.build target in
             match
               Path.unlink_no_err path_in_temp_dir;

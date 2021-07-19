@@ -449,7 +449,8 @@ module M = struct
            wasted since [f 0] does depend on it.
 
            Another important reason to list [deps] according to a linearisation
-           of the dependency order is to eliminate spurious dependency cycles. *)
+           of the dependency order is to eliminate spurious dependency
+           cycles. *)
         mutable deps : Deps.t
       }
   end =
@@ -617,7 +618,8 @@ end = struct
          we are accumulating dependencies only during the [Compute] phase. We
          can drop it if we find a way to statically guarantee this property. *)
       phase : phase
-    ; (* [deps_rev] are accumulated only when [phase = Compute], see [add_dep]. *)
+    ; (* [deps_rev] are accumulated only when [phase = Compute], see
+         [add_dep]. *)
       mutable deps_rev : Dep_node.packed list
     }
 
@@ -687,7 +689,8 @@ module Call_stack = struct
         | false -> x :: list)
     in
     let list = List.fold_right list ~init:[] ~f:cons_unless_duplicate in
-    (* Now check the case where the duplicates are the first and the last frames *)
+    (* Now check the case where the duplicates are the first and the last
+       frames *)
     match List.destruct_last list with
     | None -> list
     | Some (init, last) -> (
@@ -831,7 +834,8 @@ module Computation = struct
       Once.create ~must_not_raise:(fun () ->
           let frame = Stack_frame_with_state.create phase ~dag_node ~dep_node in
           (* The only reason we currently make the stack [frame] available to
-             the [fiber] is to let the latter get the discovered dependencies. *)
+             the [fiber] is to let the latter get the discovered
+             dependencies. *)
           Call_stack.push_frame frame (fun () -> fiber frame))
     in
     { once; dag_node }
@@ -1126,7 +1130,8 @@ end = struct
               match dep.has_cutoff with
               | false -> (
                 (* If [dep] has no cutoff, it is sufficient to check whether it
-                   is up to date. If not, we must recompute [last_cached_value]. *)
+                   is up to date. If not, we must recompute
+                   [last_cached_value]. *)
                 consider_and_restore_from_cache_without_adding_dep dep
                 >>| function
                 | Ok cached_value_of_dep -> (
@@ -1661,7 +1666,8 @@ module Run = struct
 end
 
 (* By placing this definition at the end of the file we prevent Merlin from
-   using [build] instead of [Fiber.t] when showing types throughout this file. *)
+   using [build] instead of [Fiber.t] when showing types throughout this
+   file. *)
 type 'a build = 'a Fiber.t
 
 module type Build = sig

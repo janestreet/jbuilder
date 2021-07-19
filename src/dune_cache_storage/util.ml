@@ -44,7 +44,8 @@ let add_atomically ~mode ~src ~dst : Write_result.t =
       | () -> Ok
       | exception e -> Error e))
 
-(* CR-someday amokhov: Switch to [renameat2] to go from two operations to one. *)
+(* CR-someday amokhov: Switch to [renameat2] to go from two operations to
+   one. *)
 let write_atomically ~mode ~content dst : Write_result.t =
   Temp.with_temp_file ~dir:Layout.temp_dir ~prefix:"dune" ~suffix:"write"
     ~f:(function

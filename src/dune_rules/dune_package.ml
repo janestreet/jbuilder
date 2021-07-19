@@ -392,7 +392,7 @@ let encode ~dune_version { entries; name; version; dir; sections; sites; files }
         | Deprecated_library_name d ->
           list
             (Dune_lang.atom "deprecated_library_name"
-             :: Deprecated_library_name.encode d)
+            :: Deprecated_library_name.encode d)
         | Hidden_library lib ->
           Code_error.raise "Dune_package.encode got Hidden_library"
             [ ("lib", Lib.to_dyn lib) ])

@@ -174,6 +174,6 @@ let of_config ~ext ~dune_lang ~version =
     User_error.raise ~loc:ext.loc
       (Pp.textf
          "Starting with (lang dune 2.0), formatting is enabled by default."
-       :: suggestion)
+      :: suggestion)
 
 let equal { enabled_for; _ } t = Enabled_for.equal enabled_for t.enabled_for

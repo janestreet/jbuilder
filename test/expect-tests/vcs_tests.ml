@@ -40,7 +40,8 @@ let run (vcs : Vcs.t) args =
   Process.run Strict (Lazy.force prog) real_args
     ~env:
       ((* One of the reasons to set GIT_DIR is to override any GIT_DIR set by
-          the environment, which helps for example during [git rebase --exec]. *)
+          the environment, which helps for example during [git rebase
+          --exec]. *)
        Env.add Env.initial ~var:"GIT_DIR"
          ~value:(Filename.concat (Path.to_absolute_filename vcs.root) ".git"))
     ~dir:vcs.root

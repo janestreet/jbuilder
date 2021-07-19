@@ -117,10 +117,9 @@ module Cache = struct
 
     let all =
       ("auto", None)
-      ::
-      List.map
-        ~f:(fun (name, mode) -> (name, Some mode))
-        Dune_cache_storage.Mode.all
+      :: List.map
+           ~f:(fun (name, mode) -> (name, Some mode))
+           Dune_cache_storage.Mode.all
 
     let decode = enum all
 

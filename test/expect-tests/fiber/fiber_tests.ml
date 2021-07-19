@@ -42,7 +42,8 @@ let test ?(expect_never = false) to_dyn f =
   | Test_scheduler.Never -> never_raised := true);
   match (!never_raised, expect_never) with
   | false, false ->
-    (* We don't raise in this case b/c we assume something else is being tested *)
+    (* We don't raise in this case b/c we assume something else is being
+       tested *)
     ()
   | true, true -> print_endline "[PASS] Never raised as expected"
   | false, true ->

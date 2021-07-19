@@ -186,7 +186,8 @@ let findlib_predicates_set_by_dune =
   Ps.of_list [ P.ppx_driver; P.mt; P.mt_posix ]
 
 module Loader : sig
-  (* Search for a <package>/{META,dune-package} file in the findlib search path *)
+  (* Search for a <package>/{META,dune-package} file in the findlib search
+     path *)
   val lookup_and_load :
     db -> Package.Name.t -> (Dune_package.t, Unavailable_reason.t) result
 
@@ -399,7 +400,8 @@ end = struct
                     | false -> Ok None
                     | true -> (
                       if
-                        (* We add this hack to skip manually mangled libraries *)
+                        (* We add this hack to skip manually mangled
+                           libraries *)
                         Re.execp (Lazy.force mangled_module_re) fname
                       then
                         Ok None

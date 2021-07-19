@@ -56,9 +56,8 @@ let string_in_ocaml_syntax str =
         (Pp.concat ~sep:Pp.newline
            (List.map ~f:Pp.verbatim
               (("\"" ^ String.escaped first ^ "\\n\\")
-               ::
-               List.map middle ~f:(fun s ->
-                   escape_protect_first_space s ^ "\\n\\")
+               :: List.map middle ~f:(fun s ->
+                      escape_protect_first_space s ^ "\\n\\")
               @ [ escape_protect_first_space last ^ "\"" ]))))
 
 let pp_sequence start stop x ~f =

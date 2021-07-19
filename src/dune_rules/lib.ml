@@ -145,10 +145,10 @@ module Error = struct
          ; pp_lib info
          ; Pp.char '.'
          ]
-       ::
-       (match dp with
-       | [] -> []
-       | _ -> [ Dep_path.pp dp ]))
+      ::
+      (match dp with
+      | [] -> []
+      | _ -> [ Dep_path.pp dp ]))
 
   let overlap ~in_workspace ~installed =
     make
@@ -533,8 +533,7 @@ module Link_params = struct
           Path.extend_basename obj_name ~suffix:(Cm_kind.ext Cmo) :: hidden_deps
         | Native ->
           Path.extend_basename obj_name ~suffix:(Cm_kind.ext Cmx)
-          ::
-          Path.extend_basename obj_name ~suffix:t.lib_config.ext_obj
+          :: Path.extend_basename obj_name ~suffix:t.lib_config.ext_obj
           :: hidden_deps)
     in
     { deps; hidden_deps; include_dirs }
@@ -633,10 +632,10 @@ module L = struct
       in
       Command.Args.S
         (to_iflags dirs
-         ::
-         List.map params ~f:(fun (p : Link_params.t) ->
-             Command.Args.S
-               [ Deps p.deps; Hidden_deps (Dep.Set.of_files p.hidden_deps) ])))
+        :: List.map params ~f:(fun (p : Link_params.t) ->
+               Command.Args.S
+                 [ Deps p.deps; Hidden_deps (Dep.Set.of_files p.hidden_deps) ])
+        ))
 
   let jsoo_runtime_files ts =
     List.concat_map ts ~f:(fun t -> Lib_info.jsoo_runtime t.info)
@@ -675,29 +674,27 @@ module Lib_and_module = struct
                  let+ p = Action_builder.memo_build (Link_params.get t mode) in
                  Command.Args.S
                    (Deps p.deps
-                    ::
-                    Hidden_deps (Dep.Set.of_files p.hidden_deps)
-                    ::
-                    List.map p.include_dirs ~f:(fun dir ->
-                        Command.Args.S [ A "-I"; Path dir ]))
+                   :: Hidden_deps (Dep.Set.of_files p.hidden_deps)
+                   :: List.map p.include_dirs ~f:(fun dir ->
+                          Command.Args.S [ A "-I"; Path dir ]))
                | Module (obj_dir, m) ->
                  Action_builder.return
                    (Command.Args.S
                       (Dep
                          (Obj_dir.Module.cm_file_exn obj_dir m
                             ~kind:(Mode.cm_kind (Link_mode.mode mode)))
-                       ::
-                       (match mode with
-                       | Native ->
-                         [ Command.Args.Hidden_deps
-                             (Dep.Set.of_files
-                                [ Obj_dir.Module.o_file_exn obj_dir m
-                                    ~ext_obj:lib_config.ext_obj
-                                ])
-                         ]
-                       | Byte
-                       | Byte_with_stubs_statically_linked_in ->
-                         [])))))
+                      ::
+                      (match mode with
+                      | Native ->
+                        [ Command.Args.Hidden_deps
+                            (Dep.Set.of_files
+                               [ Obj_dir.Module.o_file_exn obj_dir m
+                                   ~ext_obj:lib_config.ext_obj
+                               ])
+                        ]
+                      | Byte
+                      | Byte_with_stubs_statically_linked_in ->
+                        [])))))
          in
          Command.Args.S l)
 
@@ -1971,7 +1968,8 @@ module DB = struct
     }
 
   (* Here we omit the [only_ppx_deps_allowed] check because by the time we reach
-     this point, all preprocess dependencies should have been checked already. *)
+     this point, all preprocess dependencies should have been checked
+     already. *)
   let resolve_pps t pps =
     Resolve_names.resolve_simple_deps t ~private_deps:Allow_all pps
       ~stack:Dep_stack.empty

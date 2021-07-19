@@ -143,8 +143,9 @@ module Process : sig
       logged.
 
       @param dir change to [dir] before running the command.
-      @param env specify additional environment variables as a list of the form
-      NAME=VALUE. *)
+      @param env
+        specify additional environment variables as a list of the form
+        NAME=VALUE. *)
   val run :
     t -> ?dir:string -> ?env:string list -> string -> string list -> result
 

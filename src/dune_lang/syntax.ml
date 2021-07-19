@@ -215,7 +215,7 @@ module Error = struct
              Pp.space)
          ; Pp.text extra_info
          ]
-       :: repl)
+      :: repl)
 
   let inactive loc t ~dune_lang_ver ~what =
     let greatest_supported_version =
@@ -273,7 +273,7 @@ module Warning = struct
              Pp.space)
          ; Pp.text extra_info
          ]
-       :: repl)
+      :: repl)
 end
 
 let create ?(experimental = false) ~name ~desc supported_versions =

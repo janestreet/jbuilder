@@ -50,7 +50,8 @@ let trim_broken_metadata_entries ~trimmed_so_far =
             | Ok stats ->
               let bytes = stats.st_size in
               (* If another process deletes [path] and the [unlink_no_err] below
-                 is a no-op, we take the credit and increase [trimmed_so_far]. *)
+                 is a no-op, we take the credit and increase
+                 [trimmed_so_far]. *)
               Path.unlink_no_err path;
               Trimming_result.add trimmed_so_far ~bytes
             | Error _ ->

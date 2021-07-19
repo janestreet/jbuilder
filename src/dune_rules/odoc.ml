@@ -281,19 +281,18 @@ let setup_html sctx (odoc_file : odoc) ~pkg ~requires =
                    [ Action.Remove_tree to_remove
                    ; Action.Mkdir (Path.build odoc_file.html_dir)
                    ]))
-           ::
-           Command.run
-             ~dir:(Path.build (Paths.html_root ctx))
-             odoc
-             [ A "html"
-             ; odoc_base_flags
-             ; odoc_include_flags ctx pkg requires
-             ; A "-o"
-             ; Path (Path.build (Paths.html_root ctx))
-             ; Dep (Path.build odoc_file.odoc_input)
-             ; Hidden_targets [ odoc_file.html_file ]
-             ]
-           :: dummy))
+          :: Command.run
+               ~dir:(Path.build (Paths.html_root ctx))
+               odoc
+               [ A "html"
+               ; odoc_base_flags
+               ; odoc_include_flags ctx pkg requires
+               ; A "-o"
+               ; Path (Path.build (Paths.html_root ctx))
+               ; Dep (Path.build odoc_file.odoc_input)
+               ; Hidden_targets [ odoc_file.html_file ]
+               ]
+          :: dummy))
 
 let setup_library_odoc_rules cctx (library : Library.t) ~dep_graphs =
   let lib =
@@ -590,9 +589,8 @@ let setup_package_aliases sctx (pkg : Package.t) =
   Rules.Produce.Alias.add_deps alias
     (Action_builder.deps
        (Dep.html_alias ctx (Pkg name)
-        ::
-        (libs_of_pkg sctx ~pkg:name
-        |> List.map ~f:(fun lib -> Dep.html_alias ctx (Lib lib)))
+        :: (libs_of_pkg sctx ~pkg:name
+           |> List.map ~f:(fun lib -> Dep.html_alias ctx (Lib lib)))
        |> Dune_engine.Dep.Set.of_list_map ~f:(fun f -> Dune_engine.Dep.alias f)
        ))
 

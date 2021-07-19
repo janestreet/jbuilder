@@ -35,7 +35,8 @@ module type Ast = sig
     | Chdir of path * t
     | Setenv of string * string * t
     (* It's not possible to use a build path here since jbuild supports
-       redirecting to /dev/null. In [dune] files this is replaced with %{null} *)
+       redirecting to /dev/null. In [dune] files this is replaced with
+       %{null} *)
     | Redirect_out of Outputs.t * target * File_perm.t * t
     | Redirect_in of Inputs.t * path * t
     | Ignore of Outputs.t * t

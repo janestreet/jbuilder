@@ -31,6 +31,6 @@ let%bench_fun "single" =
 
 let l = List.init 100 ~f:ignore
 
-let%bench_fun ("many"[@indexed jobs = [ 1; 2; 4; 8 ]]) =
+let%bench_fun ("many" [@indexed jobs = [ 1; 2; 4; 8 ]]) =
   Lazy.force setup;
   fun () -> go ~jobs (fun () -> Fiber.parallel_iter l ~f:run)

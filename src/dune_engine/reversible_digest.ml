@@ -6,7 +6,8 @@ let digest_string string =
   let digest = Digest.Direct_impl.string string in
   (match
      (* CR-someday amokhov: Below we do not respect the [cache_storage_mode]
-        configuration setting. This will break if hard links are not supported. *)
+        configuration setting. This will break if hard links are not
+        supported. *)
      Dune_cache_storage.Raw_value.store_unchecked ~content:string
        ~content_digest:digest ~mode:Hardlink
    with

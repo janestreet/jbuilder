@@ -643,7 +643,8 @@ type status =
       Memo.Invalidation.t * unit Fiber.Ivar.t
   | (* Running a build *)
       Building
-  | (* Cancellation requested. Build jobs are immediately rejected in this state *)
+  | (* Cancellation requested. Build jobs are immediately rejected in this
+       state *)
       Restarting_build of
       Memo.Invalidation.t
   | (* Shut down requested. No new new builds will start *)
@@ -951,7 +952,8 @@ end = struct
           t.status <-
             Restarting_build
               (Memo.Invalidation.combine prev_invalidation invalidation);
-          (* We're already cancelling build, so file change events don't matter *)
+          (* We're already cancelling build, so file change events don't
+             matter *)
           iter t
         | Standing_by prev_invalidation ->
           t.status <-

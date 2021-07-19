@@ -26,7 +26,8 @@ type t =
            event does not invalidate the current build. However, instead of
            ignoring the events, we should merely postpone them and restart the
            build to take the promoted files into account if need be. *)
-        (* The [ignored_files] table should be accessed in the scheduler thread. *)
+        (* The [ignored_files] table should be accessed in the scheduler
+           thread. *)
   ; ignored_files : (string, unit) Table.t
   }
 
@@ -468,7 +469,8 @@ let add_watch t path =
   match t.kind with
   | Coarse _ ->
     (* Here we assume that the path is already being watched because the coarse
-       file watchers are expected to watch all the source files from the start *)
+       file watchers are expected to watch all the source files from the
+       start *)
     ()
   | Fine { inotify } -> Inotify_lib.add inotify (Path.to_string path)
 

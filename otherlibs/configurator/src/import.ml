@@ -309,7 +309,8 @@ module Io = struct
   let read_all =
     (* We use 65536 because that is the size of OCaml's IO buffers. *)
     let chunk_size = 65536 in
-    (* Generic function for channels such that seeking is unsupported or broken *)
+    (* Generic function for channels such that seeking is unsupported or
+       broken *)
     let read_all_generic t buffer =
       let rec loop () =
         Buffer.add_channel buffer t chunk_size;
@@ -329,7 +330,8 @@ module Io = struct
         let s = really_input_string t n in
         (* For some files [in_channel_length] returns an invalid value. For
            instance for files in /proc it returns [0]. So we try to read one
-           more character to make sure we did indeed reach the end of the file *)
+           more character to make sure we did indeed reach the end of the
+           file *)
         match input_char t with
         | exception End_of_file -> s
         | c ->

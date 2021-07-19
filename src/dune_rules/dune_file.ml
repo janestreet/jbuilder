@@ -1124,8 +1124,8 @@ module Executables = struct
                            to be a valid module name or add a \"name\" field \
                            with a valid module name."
                       ]
-                      ~hints:
-                        (Module_name.valid_format_doc :: user_message.hints)))
+                      ~hints:(Module_name.valid_format_doc :: user_message.hints)
+                  ))
           else
             User_error.raise ~loc
               [ Pp.textf "%s field may not be omitted before dune version %s"

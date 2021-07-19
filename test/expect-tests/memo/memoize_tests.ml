@@ -1309,7 +1309,8 @@ let%expect_test "Nested nodes with cutoff are recomputed optimally" =
   evaluate_and_print summit 0;
   evaluate_and_print summit 2;
   print_perf_counters ();
-  (* In the second run, we don't recompute [base] three times as we did before. *)
+  (* In the second run, we don't recompute [base] three times as we did
+     before. *)
   [%expect
     {|
     Started evaluating summit
@@ -1333,7 +1334,8 @@ let%expect_test "Nested nodes with cutoff are recomputed optimally" =
   |}]
 
 (* In addition to its direct purpose, this test also: (i) demonstrates what
-   happens in the presence of non-determinism; and (ii) tests cell invalidation. *)
+   happens in the presence of non-determinism; and (ii) tests cell
+   invalidation. *)
 let%expect_test "Test that there are no phantom dependencies" =
   let counter = ref 0 in
   let const_8 =

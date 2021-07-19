@@ -20,7 +20,8 @@ module Backend = struct
     let set_status_line _ = ()
 
     let print_if_no_status_line msg =
-      (* [Pp.cut] seems to be enough to force the terminating newline to appear. *)
+      (* [Pp.cut] seems to be enough to force the terminating newline to
+         appear. *)
       Ansi_color.prerr
         (Pp.seq (Pp.map_tags msg ~f:User_message.Print_config.default) Pp.cut)
 

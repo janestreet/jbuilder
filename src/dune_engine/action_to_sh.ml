@@ -141,7 +141,7 @@ and pp = function
     Pp.hovbox ~indent:2
       (Pp.concat
          (quote prog
-          :: List.concat_map args ~f:(fun arg -> [ Pp.space; quote arg ])))
+         :: List.concat_map args ~f:(fun arg -> [ Pp.space; quote arg ])))
   | Chdir dir ->
     Pp.hovbox ~indent:2 (Pp.concat [ Pp.verbatim "cd"; Pp.space; quote dir ])
   | Setenv (k, v) -> Pp.concat [ Pp.verbatim k; Pp.verbatim "="; quote v ]

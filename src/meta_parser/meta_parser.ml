@@ -83,10 +83,9 @@ struct
           entry :: map_entries entries ~rev_path ~has_version ~has_rules
         | Rule rule ->
           entry
-          ::
-          map_entries entries ~rev_path
-            ~has_version:(has_version || String.equal rule.var "version")
-            ~has_rules:true
+          :: map_entries entries ~rev_path
+               ~has_version:(has_version || String.equal rule.var "version")
+               ~has_rules:true
         | Package t ->
           Package (map_package t ~rev_path)
           :: map_entries entries ~rev_path ~has_version ~has_rules)
