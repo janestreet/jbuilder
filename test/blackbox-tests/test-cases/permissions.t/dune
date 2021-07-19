@@ -1,0 +1,9 @@
+(executable
+ (name dune_permissions))
+
+(rule
+  (alias runtest)
+  (deps (source_tree ./my-test-files))
+  (action  (progn
+             (run ./dune_permissions.exe)
+)))
