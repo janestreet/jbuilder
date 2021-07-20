@@ -196,11 +196,11 @@ end = struct
     List.concat
       [ sources
       ; List.map module_files ~f:(fun (sub_dir, file) ->
-            make_entry ?sub_dir Lib file)
+          make_entry ?sub_dir Lib file)
       ; List.map lib_files ~f:(fun (section, file) -> make_entry section file)
       ; List.map execs ~f:(make_entry Libexec)
       ; List.map dll_files ~f:(fun a ->
-            (Some loc, Install.Entry.make Stublibs a))
+          (Some loc, Install.Entry.make Stublibs a))
       ; List.map ~f:(make_entry Lib) install_c_headers
       ]
 

@@ -3,6 +3,7 @@ open Import
 open! No_io
 open Memo.Build.O
 module Executables = Dune_file.Executables
+module Buildable = Dune_file.Buildable
 
 let first_exe (exes : Executables.t) = snd (List.hd exes.names)
 
@@ -66,7 +67,7 @@ let o_files sctx ~dir ~expander ~(exes : Executables.t) ~linkages ~dir_contents
     Memo.Build.return []
   else
     let what =
-      if List.is_empty exes.buildable.Dune_file.Buildable.foreign_stubs then
+      if List.is_empty exes.buildable.Buildable.foreign_stubs then
         "archives"
       else
         "stubs"
@@ -184,14 +185,19 @@ let executables_rules ~sctx ~dir ~expander ~dir_contents ~scope ~compile_info
     (* Building an archive for foreign stubs, we link the corresponding object
        files directly to improve perf. *)
     let link_args =
+      let standard = Action_builder.return [] in
       let open Action_builder.O in
       let link_flags =
         let link_deps = Dep_conf_eval.unnamed ~expander exes.link_deps in
         link_deps
         >>> Expander.expand_and_eval_set expander exes.link_flags
-              ~standard:(Action_builder.return [])
+              ~standard
       in
-      let+ flags = link_flags in
+      let+ flags = link_flags
+      and+ ctypes_cclib_flags =
+        Ctypes_rules.ctypes_cclib_flags ~scope ~standard ~expander
+          ~buildable:exes.buildable
+      in
       Command.Args.S
         [ Command.Args.As flags
         ; Command.Args.S
@@ -199,9 +205,16 @@ let executables_rules ~sctx ~dir ~expander ~dir_contents ~scope ~compile_info
              let foreign_archives =
                exes.buildable.foreign_archives |> List.map ~f:snd
              in
+             (* XXX: don't these need the msvc hack being done in lib_rules? *)
+             (* XXX: also the Command.quote_args being done in lib_rules? *)
              List.map foreign_archives ~f:(fun archive ->
-                 let lib = Foreign.Archive.lib_file ~archive ~dir ~ext_lib in
-                 Command.Args.S [ A "-cclib"; Dep (Path.build lib) ]))
+               let lib = Foreign.Archive.lib_file ~archive ~dir ~ext_lib in
+               Command.Args.S [ A "-cclib"; Dep (Path.build lib) ]))
+        (* XXX: don't these need the msvc hack being done in lib_rules? *)
+        (* XXX: also the Command.quote_args being done in lib_rules? *)
+        ; Command.Args.As
+            (List.concat_map ctypes_cclib_flags ~f:(fun f ->
+               ["-cclib"; f]))
         ]
     in
     let* o_files =
@@ -209,8 +222,30 @@ let executables_rules ~sctx ~dir ~expander ~dir_contents ~scope ~compile_info
         ~requires_compile
     in
     let* () = Check_rules.add_files sctx ~dir o_files in
-    Exe.build_and_link_many cctx ~programs ~linkages ~link_args ~o_files
-      ~promote:exes.promote ~embed_in_plugin_libraries
+    begin
+      let buildable = exes.Executables.buildable in
+      match buildable.Buildable.ctypes with
+      | None ->
+        Exe.build_and_link_many cctx ~programs ~linkages ~link_args ~o_files
+          ~promote:exes.promote ~embed_in_plugin_libraries
+      | Some _ctypes ->
+        (* Ctypes stubgen builds utility .exe files that need to share modules
+           with this compilation context.  To support that, we extract the
+           one-time run bits from [Exe.build_and_link_many] and run them here,
+           then pass that to the [Exe.link_many] call here as well as the
+           Ctypes_rules.  This dance is done to avoid triggering duplicate rule
+           exceptions. *)
+        let* dep_graphs =
+          Dep_rules.rules cctx ~modules:(Compilation_context.modules cctx)
+        in
+        let* () =
+          let loc = fst (List.hd exes.Executables.names) in
+          Ctypes_rules.gen_rules ~dep_graphs ~cctx ~buildable ~loc ~sctx ~scope ~dir
+        in
+        let* () = Module_compilation.build_all cctx ~dep_graphs in
+        Exe.link_many ~programs ~dep_graphs ~linkages ~link_args ~o_files
+          ~promote:exes.promote ~embed_in_plugin_libraries cctx
+    end
   in
   ( cctx
   , Merlin.make ~requires:requires_compile ~stdlib_dir ~flags ~modules

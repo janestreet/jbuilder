@@ -8,10 +8,12 @@ open Stdune
 type t
 
 val make :
-     obj_dir:Path.Build.t Obj_dir.t
+     ?excluded_modules:Module_name.t list
+  -> obj_dir:Path.Build.t Obj_dir.t
   -> modules:Modules.t
   -> top_sorted_modules:Module.t list Action_builder.t
   -> ext_obj:string
+  -> unit
   -> t
 
 val unsorted_objects_and_cms : t -> mode:Mode.t -> Path.t list

@@ -15,6 +15,7 @@ cinaps \
 coq-native \
 "coq>=8.12.1" \
 core_bench \
+ctypes \
 "csexp>=1.3.0" \
 js_of_ocaml \
 js_of_ocaml-compiler \

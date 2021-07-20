@@ -1,0 +1,29 @@
+(rule
+  (targets libexample.a dllexample%{ext_dll})
+  (deps (source_tree vendor))
+  (action
+    (no-infer
+      (progn
+        (chdir vendor (run make -s -f Makefile.unix))
+        (copy vendor/libexample.a libexample.a)
+        (copy vendor/libexample%{ext_dll} dllexample%{ext_dll})))))
+
+(library
+  (name examplelib)
+  (flags (:standard -w -9-27))
+  (foreign_archives example)
+  (ctypes
+    (external_library_name examplelib)
+    (build_flags_resolver
+      (vendored
+        ; hack: multiple -I directives to work around cc commands being run from different
+        ; relative directories.  Is there a cleaner way to do this?
+        (c_flags ("-Istubgen/vendor" "-Ivendor"))))
+    (headers (include "example.h"))
+    (type_description
+      (instance Types)
+      (functor Type_description))
+    (function_description
+      (instance Functions)
+      (functor Function_description))
+    (generated_entry_point C)))

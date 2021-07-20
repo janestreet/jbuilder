@@ -267,6 +267,12 @@ Unreleased
 - Do not pass include directories containing native objects when compiling
   bytecode (#4200, @nojb)
 
+- If an .ml file is not used by an executable, Dune no longer report
+  parsing error in this file (#4330, @jeremiedimino)
+
+- Experimental ctypes support (#3905, fixes #135, @mbacarella)
+
+
 2.8.2 (21/01/2021)
 ------------------
 

@@ -64,6 +64,51 @@ without the ``.h`` extension. When a library install header files,
 these are made visible to users of the library via the include search
 path.
 
+Stub Generation with Ctypes
+---------------------------
+
+It is possible to use the ctypes_ stanza to generate bindings for C libraries
+without writing any C code.
+
+You need only provide two OCaml modules, named ``Type_description`` and
+``Function_description`` which describe the types, values and functions you
+want to access in the C library from OCaml.  Additionally, you must list any C
+headers and a method for resolving build and link flags.
+
+If you're binding a library distributed by your OS, you can use the
+``pkg-config`` utility to resolve any build and link flags.  Alternatively, if
+you're using a locally installed library or a vendored library, you can provide
+the flags manually.
+
+The ``Type_description`` module must define a functor named ``Types`` with
+signature ``Ctypes.TYPE``.  The ``Function_description`` module must define a
+functor named ``Functions`` with signature ``Ctypes.FOREIGN``.
+
+.. code:: scheme
+
+   (executable
+    (name foo)
+    (libraries core)
+    (flags (:standard -w -9-27))
+    (ctypes
+     (external_library_name libfoo)
+     (build_flags_resolver pkg_config)
+     (headers (include "foo.h"))
+     (type_description
+      (instance Types)
+      (functor Type_description))
+     (function_description
+      (concurrency unlocked)
+      (instance Functions)
+      (functor Function_description))
+     (generated_entry_point C)))
+
+This stanza will introduce a module named ``C`` into your project, with the
+sub-modules ``Types`` and ``Functions`` that will have your fully bound C
+types, constants and functions.
+
+A complete example of using the ctypes stanza is available here (TBD).
+
 .. _foreign-sandboxing:
 
 Foreign build sandboxing
@@ -148,3 +193,5 @@ The `re2 project <https://github.com/janestreet/re2>`_ uses this
 method to build the re2 C library. You can look at the file
 ``re2/src/re2_c/dune`` in this project to see a full working
 example.
+
+.. _ctypes: https://github.com/ocamllabs/ocaml-ctypes

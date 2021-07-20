@@ -1,0 +1,13 @@
+all: libexample.so libexample.a
+
+example.o: example.c
+	cc -c -fPIC -o example.o example.c
+
+libexample.a: example.o
+	ar rcs libexample.a example.o
+
+libexample.so: example.o
+	gcc -shared -o libexample.so example.o
+
+clean:
+	rm -f example.o libexample.so libexample.a

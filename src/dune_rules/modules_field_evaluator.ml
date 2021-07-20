@@ -40,9 +40,6 @@ let eval =
         match m with
         | Ok m -> Some (loc, m)
         | Error s ->
-          (* We are going to fail only if the module appear in the final set,
-             foo \ bar doesn't fail if bar doesn't exists (for jbuild file
-             compatibility) *)
           User_error.raise ~loc
             [ Pp.textf "Module %s doesn't exist." (Module_name.to_string s) ])
 

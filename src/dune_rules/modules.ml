@@ -117,7 +117,8 @@ module Stdlib = struct
     Module_name.Map.values t.modules
     |> List.filter ~f:(fun m -> Some (Module.name m) <> t.exit_module)
 
-  let find t = Module_name.Map.find t.modules
+  let find t =
+   Module_name.Map.find t.modules
 
   let find_dep t ~of_ name =
     let of_name = Module.name of_ in
@@ -535,11 +536,16 @@ let impl impl ~vlib =
 
 let rec find t name =
   match t with
-  | Singleton m -> Option.some_if (Module.name m = name) m
-  | Unwrapped m -> Module_name.Map.find m name
-  | Stdlib w -> Stdlib.find w name
-  | Wrapped w -> Wrapped.find w name
-  | Impl { impl; vlib } -> (
+  | Singleton m ->
+    Option.some_if (Module.name m = name) m
+  | Unwrapped m ->
+    Module_name.Map.find m name
+  | Stdlib w ->
+    Stdlib.find w name
+  | Wrapped w ->
+    Wrapped.find w name
+  | Impl { impl; vlib } ->
+    (
     match find impl name with
     | Some _ as m -> m
     | None -> find vlib name)

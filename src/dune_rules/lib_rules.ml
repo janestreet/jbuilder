@@ -18,7 +18,7 @@ let msvc_hack_cclibs =
 
 (* Build an OCaml library. *)
 let build_lib (lib : Library.t) ~native_archives ~sctx ~expander ~flags ~dir
-    ~mode ~cm_files =
+    ~mode ~cm_files ~scope =
   let ctx = Super_context.context sctx in
   Memo.Build.Result.iter (Context.compiler ctx mode) ~f:(fun compiler ->
       let target = Library.archive lib ~dir ~ext:(Mode.compiled_lib_ext mode) in
@@ -43,13 +43,16 @@ let build_lib (lib : Library.t) ~native_archives ~sctx ~expander ~flags ~dir
         Action_builder.paths (Cm_files.unsorted_objects_and_cms cm_files ~mode)
       in
       let ocaml_flags = Ocaml_flags.get flags mode in
+      let standard = Action_builder.return [] in
       let cclibs =
-        Expander.expand_and_eval_set expander lib.c_library_flags
-          ~standard:(Action_builder.return [])
+        Expander.expand_and_eval_set expander lib.c_library_flags ~standard
       in
       let library_flags =
-        Expander.expand_and_eval_set expander lib.library_flags
-          ~standard:(Action_builder.return [])
+        Expander.expand_and_eval_set expander lib.library_flags ~standard
+      in
+      let ctypes_cclib_flags =
+        Ctypes_rules.ctypes_cclib_flags ~scope ~standard ~expander
+          ~buildable:lib.buildable
       in
       Super_context.add_rule ~dir sctx ~loc:lib.buildable.loc
         (let open Action_builder.With_targets.O in
@@ -77,6 +80,9 @@ let build_lib (lib : Library.t) ~native_archives ~sctx ~expander ~flags ~dir
                   (match mode with
                   | Byte -> []
                   | Native -> native_archives)
+              ; Dyn
+                  (Action_builder.map ctypes_cclib_flags ~f:(fun x ->
+                     Command.quote_args "-cclib" (map_cclibs x)))
               ]))
 
 let gen_wrapped_compat_modules (lib : Library.t) cctx =
@@ -271,7 +277,7 @@ let build_shared lib ~native_archives ~sctx ~dir ~flags =
       Super_context.add_rule sctx build ~dir ~loc:lib.buildable.loc)
 
 let setup_build_archives (lib : Dune_file.Library.t) ~cctx
-    ~(dep_graphs : Dep_graph.Ml_kind.t) ~expander =
+    ~(dep_graphs : Dep_graph.Ml_kind.t) ~expander ~scope =
   let obj_dir = Compilation_context.obj_dir cctx in
   let flags = Compilation_context.flags cctx in
   let modules = Compilation_context.modules cctx in
@@ -319,10 +325,20 @@ let setup_build_archives (lib : Dune_file.Library.t) ~cctx
     let+ lib_info = Library.to_lib_info lib ~dir ~lib_config in
     Lib_info.eval_native_archives_exn lib_info ~modules:(Some modules)
   in
-  let cm_files = Cm_files.make ~obj_dir ~ext_obj ~modules ~top_sorted_modules in
+  let cm_files =
+    let excluded_modules =
+      (* ctypes type_gen and function_gen scripts should not be included in the
+         library.  Otherwise they will spew stuff to stdout on library load. *)
+      match lib.buildable.ctypes with
+      | Some ctypes -> Ctypes_rules.non_installable_modules ctypes
+      | None -> []
+    in
+    Cm_files.make ~excluded_modules ~obj_dir ~ext_obj ~modules
+      ~top_sorted_modules ()
+  in
   let* () =
     Mode.Dict.Set.iter_concurrently modes ~f:(fun mode ->
-        build_lib lib ~native_archives ~dir ~sctx ~expander ~flags ~mode
+        build_lib lib ~native_archives ~dir ~sctx ~expander ~flags ~mode ~scope
           ~cm_files)
   and* () =
     (* Build *.cma.js *)
@@ -390,7 +406,7 @@ let cctx (lib : Library.t) ~sctx ~source_modules ~dir ~expander ~scope
     ?stdlib:lib.stdlib ~package ?vimpl ~modes
 
 let library_rules (lib : Library.t) ~cctx ~source_modules ~dir_contents
-    ~compile_info =
+    ~compile_info ~dep_graphs =
   (* Preprocess before adding the alias module as it doesn't need preprocessing *)
   let source_modules =
     Modules.fold_user_written source_modules ~init:[] ~f:(fun m acc -> m :: acc)
@@ -404,8 +420,7 @@ let library_rules (lib : Library.t) ~cctx ~source_modules ~dir_contents
   let scope = Compilation_context.scope cctx in
   let requires_compile = Compilation_context.requires_compile cctx in
   let stdlib_dir = (Compilation_context.context cctx).Context.stdlib_dir in
-  let* dep_graphs = Dep_rules.rules cctx ~modules
-  and* () =
+  let* () =
     Memo.Build.Option.iter vimpl
       ~f:(Virtual_rules.setup_copy_rules_for_impl ~sctx ~dir)
   in
@@ -416,7 +431,7 @@ let library_rules (lib : Library.t) ~cctx ~source_modules ~dir_contents
   let+ () =
     Memo.Build.when_
       (not (Library.is_virtual lib))
-      (fun () -> setup_build_archives lib ~cctx ~dep_graphs ~expander)
+      (fun () -> setup_build_archives lib ~cctx ~dep_graphs ~expander ~scope)
   and+ () =
     let vlib_stubs_o_files = Vimpl.vlib_stubs_o_files vimpl in
     Memo.Build.when_
@@ -460,7 +475,20 @@ let rules (lib : Library.t) ~sctx ~dir_contents ~dir ~expander ~scope =
     let* cctx =
       cctx lib ~sctx ~source_modules ~dir ~scope ~expander ~compile_info
     in
+    let* dep_graphs =
+      Dep_rules.rules cctx ~modules:(Compilation_context.modules cctx)
+    in
+    let* () =
+      let buildable = lib.Library.buildable in
+      match buildable.Buildable.ctypes with
+      | None -> Memo.Build.return ()
+      | Some _ctypes ->
+        Ctypes_rules.gen_rules
+          ~loc:(fst lib.Library.name)
+          ~cctx ~dep_graphs ~buildable ~sctx ~scope ~dir
+    in
     library_rules lib ~cctx ~source_modules ~dir_contents ~compile_info
+      ~dep_graphs
   in
   let* () = Buildable_rules.gen_select_rules sctx compile_info ~dir in
   Buildable_rules.with_lib_deps

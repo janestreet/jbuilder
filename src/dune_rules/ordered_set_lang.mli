@@ -7,6 +7,8 @@ open Import
 
 type t
 
+val of_atoms : loc:Loc.t -> string list -> t
+
 val decode : t Dune_lang.Decoder.t
 
 (** Return the location of the set. [loc standard] returns [None] *)
@@ -55,6 +57,8 @@ module Unexpanded : sig
   val standard : t
 
   val of_strings : pos:string * int * int * int -> string list -> t
+
+  val include_single : context:Univ_map.t -> pos:string * int * int * int -> string -> t
 
   val field :
        ?check:unit Dune_lang.Decoder.t

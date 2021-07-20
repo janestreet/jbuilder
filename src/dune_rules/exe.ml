@@ -221,13 +221,12 @@ let link_js ~name ~cm_files ~promote cctx =
   Jsoo_rules.build_exe cctx ~js_of_ocaml ~src ~cm:top_sorted_cms
     ~flags:(Command.Args.dyn flags) ~promote
 
-let build_and_link_many ~programs ~linkages ~promote ?link_args ?o_files
-    ?(embed_in_plugin_libraries = []) cctx =
+let link_many ?link_args ?o_files ?(embed_in_plugin_libraries=[]) ~dep_graphs
+      ~programs ~linkages ~promote cctx =
+  let dep_graphs : Dep_graph.t Ml_kind.Dict.t = dep_graphs in
   let open Memo.Build.O in
   let modules = Compilation_context.modules cctx in
-  let* dep_graphs = Dep_rules.rules cctx ~modules in
-  let* () = Module_compilation.build_all cctx ~dep_graphs
-  and* link_time_code_gen = Link_time_code_gen.handle_special_libs cctx in
+  let* link_time_code_gen = Link_time_code_gen.handle_special_libs cctx in
   Memo.Build.parallel_iter programs
     ~f:(fun { Program.name; main_module_name; loc } ->
       let cm_files =
@@ -239,7 +238,7 @@ let build_and_link_many ~programs ~linkages ~promote ?link_args ?o_files
           Dep_graph.top_closed_implementations dep_graphs.impl [ main ]
         in
         Cm_files.make ~obj_dir ~modules ~top_sorted_modules
-          ~ext_obj:ctx.lib_config.ext_obj
+          ~ext_obj:ctx.lib_config.ext_obj ()
       in
       Memo.Build.parallel_iter linkages ~f:(fun linkage ->
           if linkage = Linkage.js then
@@ -255,7 +254,19 @@ let build_and_link_many ~programs ~linkages ~promote ?link_args ?o_files
             link_exe cctx ~loc ~name ~linkage ~cm_files ~link_time_code_gen
               ~promote ?link_args ?o_files))
 
-let build_and_link ~program = build_and_link_many ~programs:[ program ]
+let build_and_link_many ?link_args ?o_files ?embed_in_plugin_libraries
+      ~programs ~linkages ~promote cctx =
+  let open Memo.Build.O in
+  let modules = Compilation_context.modules cctx in
+  let* dep_graphs = Dep_rules.rules cctx ~modules in
+  let* () = Module_compilation.build_all cctx ~dep_graphs in
+  link_many ?link_args ?o_files ?embed_in_plugin_libraries ~dep_graphs
+    ~programs ~linkages ~promote cctx
+
+let build_and_link ?link_args ?o_files ?embed_in_plugin_libraries
+      ~program ~linkages ~promote cctx =
+  build_and_link_many ?link_args ?o_files ?embed_in_plugin_libraries
+    ~programs:[ program ] ~linkages ~promote cctx
 
 let exe_path cctx ~(program : Program.t) ~linkage =
   exe_path_from_name cctx ~name:program.name ~linkage
